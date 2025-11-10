@@ -1,0 +1,602 @@
+import sys
+
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow
+from PyQt6.QtWidgets import QLabel, QLineEdit, QMessageBox
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
+import os.path
+
+MAMONT_REG = {'1': '1'}
+MAXIMKA_REG = {'MAX': 'nebalbesik123'}
+UCHENIK_REG = {'2': '2'}
+
+if hasattr(Qt, "AA_EnableHighDpiScaling"):
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+if hasattr(Qt, "AA_UseHighDpiPixmaps"):
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+
+class Reg(QMainWindow):
+    def __init__(self):
+        super(Reg, self).__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setFixedSize(1200, 900)
+        self.setWindowTitle('Форма для регистрации')
+
+        self.input_btn = QPushButton(self)
+        self.input_btn.setText('Ввод')
+        self.input_btn.resize(self.input_btn.sizeHint())
+        self.input_btn.setGeometry(480, 410, 161, 51)
+        self.input_btn.move(495, 380)
+        font = QFont()
+        font.setPointSize(14)
+        self.input_btn.setFont(font)
+        self.input_btn.clicked.connect(self.logg)
+
+        self.label = QLabel(self)
+        self.label.setText("Введите логин и пароль")
+        self.label.resize(300, 100)
+        self.label.move(450, 200)
+        self.label.setFont(font)
+
+        self.login_label = QLabel(self)
+        self.login_label.setText("Введите логин: ")
+        self.login_label.move(320, 290)
+        font.setPointSize(11)
+        self.login_label.setFont(font)
+        self.login_label.resize(600, 20)
+
+        self.password_label = QLabel(self)
+        self.password_label.setText("Введите пароль: ")
+        self.password_label.move(320, 340)
+        self.password_label.setFont(font)
+        self.password_label.resize(600, 20)
+
+        self.login_input = QLineEdit(self)
+        self.login_input.move(450, 280)
+        self.login_input.resize(250, 40)
+
+        self.password_input = QLineEdit(self)
+        self.password_input.move(450, 330)
+        self.password_input.resize(250, 40)
+
+    def logg(self):
+        try:
+            if self.login_input and self.password_input:
+                login = self.login_input.text()
+                password = self.password_input.text()
+                if (login in UCHENIK_REG and UCHENIK_REG[login] == password):
+                    self.otkritu()
+                elif (login in MAMONT_REG and MAMONT_REG[login] == password):
+                    self.otkrit()
+                else:
+                    QMessageBox.warning(self, 'ERROR', 'Нет такого логина или пароля.')
+            else:
+                QMessageBox.warning(self, 'ERROR', 'Что-то не так.')
+        except Exception as f:
+            print(f)
+            QMessageBox.warning(self, 'ERROR', 'Что-то не так.')
+
+    def otkrit(self):
+        self.open = InputTask()
+        self.open.regwin = self
+        self.password_input.clear()
+        self.login_input.clear()
+        self.open.show()
+        self.close()
+
+    def otkritu(self):
+        self.open = Test()
+        self.open.regwin1 = self
+        self.password_input.clear()
+        self.login_input.clear()
+        self.open.show()
+        self.close()
+
+class Shered_Data:
+    address = ''
+    existence_Image = None
+    existence_Add_files = None
+
+
+
+class InputTask(QWidget):
+    def __init__(self):
+        super(InputTask, self).__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setFixedSize(1200, 900)
+        self.setWindowTitle('введите адрес папки с заданиями')
+
+        self.back_button = QPushButton(self)
+        self.back_button.setText('Назад')
+        self.back_button.resize(self.back_button.sizeHint())
+        self.back_button.move(30, 30)
+        self.back_button.clicked.connect(self.back)
+
+        self.back_button = QPushButton(self)
+        self.back_button.setText('Ввод адреса')
+        self.back_button.resize(self.back_button.sizeHint())
+        self.back_button.move(600, 550)
+        self.back_button.clicked.connect(self.send_address)
+
+        self.adress_input = QLineEdit(self)
+        self.adress_input.move(450, 500)
+        self.adress_input.resize(400, 40)
+
+        self.inf_label = QLabel(self)
+        self.inf_label.resize(1200, 400)
+        self.inf_label.setText(r"""Перед тем как ввести адрес (...\Main_EGE_Tester) папки с заданием убедитесь что она соответствует правилам для обработки файлов:
+Основная папка должна иметь название Main_EGE_Tester, она должна нести в себе текстовый файл 'Tasks'
+пример структуры задания из файла:
+                    номер задания#вопрос#ответ
+                    !#?
+                    11#Привет, как дела?#нормально
+                    !#?
+                    ...
+    , папку 'Images' в которой будут картинки к заданиям где это требуется мами картинки должны называться номером задания
+    к которому относятся например: '12.png' или '7.jpg'
+    и на последок папку 'Add_files' в которых будут дополнительные файлы к заданиям они должны называться номером задания
+    к которому относятся например: '18.ods' или '10.odt' (всего поддерживаемых расширений 3: .odt, .ods, .txt)""")
+        self.inf_label.move(50, 100)
+        font = QFont()
+        font.setPointSize(14)
+        self.inf_label.setFont(font)
+
+    def send_address(self):
+        Shered_Data.address = self.adress_input.text()
+
+
+
+    def back(self):
+        self.regwin = Reg()
+        self.zadanwin = InputTask()
+        self.regwin.show()
+        self.close()
+
+class Test(QWidget):
+    def __init__(self):
+        super(Test, self).__init__()
+        self.initUI()
+    def initUI(self):
+        self.setFixedSize(1300, 900)
+        self.setWindowTitle('Решите задания')
+
+        self.back_button = QPushButton(self)
+        self.back_button.setText('Дазан')
+        self.back_button.resize(self.back_button.sizeHint())
+        self.back_button.move(77, 5)
+        self.back_button.clicked.connect(self.test)
+
+        self.inf_label = QLabel(self)
+        self.inf_label.resize(1200, 400)
+        self.inf_label.setText(r"""Инструкция для участника экзамена по информатике (симулятор)
+
+«Уважаемые участники экзамена! Перед началом убедитесь, что на вашем рабочем месте на экране отображаются все необходимые элементы:
+ рабочая область для выполнения заданий, кнопка «Сдать работу».
+
+Правила работы в симуляторе:
+1. Экзамен начинается после нажатия любой кнопки с номером задания.
+2. Все задания должны выполняться только в предоставленной среде. Использование стороннего ПО или внешних источников информации запрещено.
+3. Не покидайте окно симулятора во время экзамена.
+Советы по выполнению экзамена:
+Сначала внимательно прочитайте задание, затем приступайте к выполнению.Если не знаете ответ, отметьте его черновиком и возвращайтесь позже.
+Не забывайте нажать кнопку ввода после ввода ответа иначе ответ не сохранится, для изменения ответа нажмите кнопку вновь
+Завершение экзамена:
+По истечении времени или после нажатия кнопки «Сдать работу» ваши ответы автоматически сохраняются.
+После завершения экзамена вы можете просмотреть свои результаты.
+Желаем успеха и удачной работы!»""")
+        self.inf_label.move(130, 100)
+        font = QFont()
+        font.setPointSize(12)
+        self.inf_label.setFont(font)
+
+
+        self.back_button = QPushButton(self)
+        self.back_button.setText('Назад')
+        self.back_button.resize(self.back_button.sizeHint())
+        self.back_button.move(37, 5)
+        self.back_button.clicked.connect(self.back)
+
+
+
+        self.zadanie_1_btn = QPushButton(self)
+        self.zadanie_1_btn.setText('1')
+        self.zadanie_1_btn.resize(40, 40)
+        self.zadanie_1_btn.move(30, 30)
+        self.zadanie_1_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_2_btn = QPushButton(self)
+        self.zadanie_2_btn.setText('2')
+        self.zadanie_2_btn.resize(40, 40)
+        self.zadanie_2_btn.move(30, 80)
+        self.zadanie_2_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_3_btn = QPushButton(self)
+        self.zadanie_3_btn.setText('3')
+        self.zadanie_3_btn.resize(40, 40)
+        self.zadanie_3_btn.move(30, 130)
+        self.zadanie_3_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_4_btn = QPushButton(self)
+        self.zadanie_4_btn.setText('4')
+        self.zadanie_4_btn.resize(40, 40)
+        self.zadanie_4_btn.move(30, 180)
+        self.zadanie_4_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_5_btn = QPushButton(self)
+        self.zadanie_5_btn.setText('5')
+        self.zadanie_5_btn.resize(40, 40)
+        self.zadanie_5_btn.move(30, 230)
+        self.zadanie_5_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_6_btn = QPushButton(self)
+        self.zadanie_6_btn.setText('6')
+        self.zadanie_6_btn.resize(40, 40)
+        self.zadanie_6_btn.move(30, 280)
+        self.zadanie_6_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_7_btn = QPushButton(self)
+        self.zadanie_7_btn.setText('7')
+        self.zadanie_7_btn.resize(40, 40)
+        self.zadanie_7_btn.move(30, 330)
+        self.zadanie_7_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_8_btn = QPushButton(self)
+        self.zadanie_8_btn.setText('8')
+        self.zadanie_8_btn.resize(40, 40)
+        self.zadanie_8_btn.move(30, 380)
+        self.zadanie_8_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_9_btn = QPushButton(self)
+        self.zadanie_9_btn.setText('9')
+        self.zadanie_9_btn.resize(40, 40)
+        self.zadanie_9_btn.move(30, 430)
+        self.zadanie_9_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_10_btn = QPushButton(self)
+        self.zadanie_10_btn.setText('10')
+        self.zadanie_10_btn.resize(40, 40)
+        self.zadanie_10_btn.move(30, 480)
+        self.zadanie_10_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_11_btn = QPushButton(self)
+        self.zadanie_11_btn.setText('11')
+        self.zadanie_11_btn.resize(40, 40)
+        self.zadanie_11_btn.move(30, 530)
+        self.zadanie_11_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_12_btn = QPushButton(self)
+        self.zadanie_12_btn.setText('12')
+        self.zadanie_12_btn.resize(40, 40)
+        self.zadanie_12_btn.move(30, 580)
+        self.zadanie_12_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_13_btn = QPushButton(self)
+        self.zadanie_13_btn.setText('13')
+        self.zadanie_13_btn.resize(40, 40)
+        self.zadanie_13_btn.move(30, 630)
+        self.zadanie_13_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_14_btn = QPushButton(self)
+        self.zadanie_14_btn.setText('14')
+        self.zadanie_14_btn.resize(40, 40)
+        self.zadanie_14_btn.move(30, 680)
+        self.zadanie_14_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_15_btn = QPushButton(self)
+        self.zadanie_15_btn.setText('15')
+        self.zadanie_15_btn.resize(40, 40)
+        self.zadanie_15_btn.move(30, 730)
+        self.zadanie_15_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_16_btn = QPushButton(self)
+        self.zadanie_16_btn.setText('16')
+        self.zadanie_16_btn.resize(40, 40)
+        self.zadanie_16_btn.move(80, 30)
+        self.zadanie_16_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_17_btn = QPushButton(self)
+        self.zadanie_17_btn.setText('17')
+        self.zadanie_17_btn.resize(40, 40)
+        self.zadanie_17_btn.move(80, 80)
+        self.zadanie_17_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_18_btn = QPushButton(self)
+        self.zadanie_18_btn.setText('18')
+        self.zadanie_18_btn.resize(40, 40)
+        self.zadanie_18_btn.move(80, 130)
+        self.zadanie_18_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_19_btn = QPushButton(self)
+        self.zadanie_19_btn.setText('19')
+        self.zadanie_19_btn.resize(40, 40)
+        self.zadanie_19_btn.move(80, 180)
+        self.zadanie_19_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_20_btn = QPushButton(self)
+        self.zadanie_20_btn.setText('20')
+        self.zadanie_20_btn.resize(40, 40)
+        self.zadanie_20_btn.move(80, 230)
+        self.zadanie_20_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_21_btn = QPushButton(self)
+        self.zadanie_21_btn.setText('21')
+        self.zadanie_21_btn.resize(40, 40)
+        self.zadanie_21_btn.move(80, 280)
+        self.zadanie_21_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_22_btn = QPushButton(self)
+        self.zadanie_22_btn.setText('22')
+        self.zadanie_22_btn.resize(40, 40)
+        self.zadanie_22_btn.move(80, 330)
+        self.zadanie_22_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_23_btn = QPushButton(self)
+        self.zadanie_23_btn.setText('23')
+        self.zadanie_23_btn.resize(40, 40)
+        self.zadanie_23_btn.move(80, 380)
+        self.zadanie_23_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_24_btn = QPushButton(self)
+        self.zadanie_24_btn.setText('24')
+        self.zadanie_24_btn.resize(40, 40)
+        self.zadanie_24_btn.move(80, 430)
+        self.zadanie_24_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_25_btn = QPushButton(self)
+        self.zadanie_25_btn.setText('25')
+        self.zadanie_25_btn.resize(40, 40)
+        self.zadanie_25_btn.move(80, 480)
+        self.zadanie_25_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_26_btn = QPushButton(self)
+        self.zadanie_26_btn.setText('26')
+        self.zadanie_26_btn.resize(40, 40)
+        self.zadanie_26_btn.move(80, 530)
+        self.zadanie_26_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_27_btn = QPushButton(self)
+        self.zadanie_27_btn.setText('27')
+        self.zadanie_27_btn.resize(40, 40)
+        self.zadanie_27_btn.move(80, 580)
+        self.zadanie_27_btn.clicked.connect(self.assignment_num)
+
+    def assignment_num(self):
+        number = self.sender().text()
+        address = Shered_Data.address
+        Shered_Data.existence_Image = False
+        Shered_Data.existence_Add_files = False
+        try:
+            if os.path.exists(address + f"/Images/{number}.jpg") or os.path.exists(address + f"/Images/{number}.png"):
+                if os.path.exists(fr'{address}' + f'/Add_files/{number}.txt') or os.path.exists(
+                        fr'{address}' + f'/Add_files/{number}.ods') or os.path.exists(
+                    fr'{address}' + f'/Add_files/{number}.odt'):
+                    pass
+                else:
+                    pass
+            else:
+                if os.path.exists(fr'{address}' + f'/Add_files/{number}.txt') or os.path.exists(
+                    fr'{address}' + f'/Add_files/{number}.ods') or os.path.exists(
+                    fr'{address}' + f'/Add_files/{number}.odt'):
+                    pass
+                else:
+                    pass
+        except FileNotFoundError:
+            QMessageBox.warning(self, 'ERROR', 'Файл Tasks не найден.')
+        except Exception as f:
+            QMessageBox.warning(self, 'ERROR', str(f))
+
+
+
+
+    def test(self):
+        self.regwin1 = TestWin1()
+        self.testnwin = Test()
+        self.regwin1.show()
+        self.close()
+
+
+        
+    def back(self):
+        self.regwin = Reg()
+        self.testnwin = Test()
+        self.regwin.show()
+        self.close()
+
+
+class TestWin1(QWidget):
+    def __init__(self):
+        super(TestWin1, self).__init__()
+        self.initUI()
+    def initUI(self):
+        self.setFixedSize(1200, 900)
+        self.setWindowTitle('Решите задания')
+        address = Shered_Data.address
+        with open(fr'{address}' + '/Tasks.txt', encoding="utf-8") as task_text:
+            value = task_text.read()
+            with open('used_assignment', 'w', encoding="utf-8") as file:
+                file.write(value)
+
+        self.answer_input = QLineEdit(self)
+        self.answer_input.move(900, 680)
+        self.answer_input.resize(120, 30)
+
+        self.zadanie_1_btn = QPushButton(self)
+        self.zadanie_1_btn.setText('1')
+        self.zadanie_1_btn.resize(40, 40)
+        self.zadanie_1_btn.move(30, 30)
+        self.zadanie_1_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_2_btn = QPushButton(self)
+        self.zadanie_2_btn.setText('2')
+        self.zadanie_2_btn.resize(40, 40)
+        self.zadanie_2_btn.move(30, 80)
+        self.zadanie_2_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_3_btn = QPushButton(self)
+        self.zadanie_3_btn.setText('3')
+        self.zadanie_3_btn.resize(40, 40)
+        self.zadanie_3_btn.move(30, 130)
+        self.zadanie_3_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_4_btn = QPushButton(self)
+        self.zadanie_4_btn.setText('4')
+        self.zadanie_4_btn.resize(40, 40)
+        self.zadanie_4_btn.move(30, 180)
+        self.zadanie_4_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_5_btn = QPushButton(self)
+        self.zadanie_5_btn.setText('5')
+        self.zadanie_5_btn.resize(40, 40)
+        self.zadanie_5_btn.move(30, 230)
+        self.zadanie_5_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_6_btn = QPushButton(self)
+        self.zadanie_6_btn.setText('6')
+        self.zadanie_6_btn.resize(40, 40)
+        self.zadanie_6_btn.move(30, 280)
+        self.zadanie_6_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_7_btn = QPushButton(self)
+        self.zadanie_7_btn.setText('7')
+        self.zadanie_7_btn.resize(40, 40)
+        self.zadanie_7_btn.move(30, 330)
+        self.zadanie_7_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_8_btn = QPushButton(self)
+        self.zadanie_8_btn.setText('8')
+        self.zadanie_8_btn.resize(40, 40)
+        self.zadanie_8_btn.move(30, 380)
+        self.zadanie_8_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_9_btn = QPushButton(self)
+        self.zadanie_9_btn.setText('9')
+        self.zadanie_9_btn.resize(40, 40)
+        self.zadanie_9_btn.move(30, 430)
+        self.zadanie_9_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_10_btn = QPushButton(self)
+        self.zadanie_10_btn.setText('10')
+        self.zadanie_10_btn.resize(40, 40)
+        self.zadanie_10_btn.move(30, 480)
+        self.zadanie_10_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_11_btn = QPushButton(self)
+        self.zadanie_11_btn.setText('11')
+        self.zadanie_11_btn.resize(40, 40)
+        self.zadanie_11_btn.move(30, 530)
+        self.zadanie_11_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_12_btn = QPushButton(self)
+        self.zadanie_12_btn.setText('12')
+        self.zadanie_12_btn.resize(40, 40)
+        self.zadanie_12_btn.move(30, 580)
+        self.zadanie_12_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_13_btn = QPushButton(self)
+        self.zadanie_13_btn.setText('13')
+        self.zadanie_13_btn.resize(40, 40)
+        self.zadanie_13_btn.move(30, 630)
+        self.zadanie_13_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_14_btn = QPushButton(self)
+        self.zadanie_14_btn.setText('14')
+        self.zadanie_14_btn.resize(40, 40)
+        self.zadanie_14_btn.move(30, 680)
+        self.zadanie_14_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_15_btn = QPushButton(self)
+        self.zadanie_15_btn.setText('15')
+        self.zadanie_15_btn.resize(40, 40)
+        self.zadanie_15_btn.move(30, 730)
+        self.zadanie_15_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_16_btn = QPushButton(self)
+        self.zadanie_16_btn.setText('16')
+        self.zadanie_16_btn.resize(40, 40)
+        self.zadanie_16_btn.move(80, 30)
+        self.zadanie_16_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_17_btn = QPushButton(self)
+        self.zadanie_17_btn.setText('17')
+        self.zadanie_17_btn.resize(40, 40)
+        self.zadanie_17_btn.move(80, 80)
+        self.zadanie_17_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_18_btn = QPushButton(self)
+        self.zadanie_18_btn.setText('18')
+        self.zadanie_18_btn.resize(40, 40)
+        self.zadanie_18_btn.move(80, 130)
+        self.zadanie_18_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_19_btn = QPushButton(self)
+        self.zadanie_19_btn.setText('19')
+        self.zadanie_19_btn.resize(40, 40)
+        self.zadanie_19_btn.move(80, 180)
+        self.zadanie_19_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_20_btn = QPushButton(self)
+        self.zadanie_20_btn.setText('20')
+        self.zadanie_20_btn.resize(40, 40)
+        self.zadanie_20_btn.move(80, 230)
+        self.zadanie_20_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_21_btn = QPushButton(self)
+        self.zadanie_21_btn.setText('21')
+        self.zadanie_21_btn.resize(40, 40)
+        self.zadanie_21_btn.move(80, 280)
+        self.zadanie_21_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_22_btn = QPushButton(self)
+        self.zadanie_22_btn.setText('22')
+        self.zadanie_22_btn.resize(40, 40)
+        self.zadanie_22_btn.move(80, 330)
+        self.zadanie_22_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_23_btn = QPushButton(self)
+        self.zadanie_23_btn.setText('23')
+        self.zadanie_23_btn.resize(40, 40)
+        self.zadanie_23_btn.move(80, 380)
+        self.zadanie_23_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_24_btn = QPushButton(self)
+        self.zadanie_24_btn.setText('24')
+        self.zadanie_24_btn.resize(40, 40)
+        self.zadanie_24_btn.move(80, 430)
+        self.zadanie_24_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_25_btn = QPushButton(self)
+        self.zadanie_25_btn.setText('25')
+        self.zadanie_25_btn.resize(40, 40)
+        self.zadanie_25_btn.move(80, 480)
+        self.zadanie_25_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_26_btn = QPushButton(self)
+        self.zadanie_26_btn.setText('26')
+        self.zadanie_26_btn.resize(40, 40)
+        self.zadanie_26_btn.move(80, 530)
+        self.zadanie_26_btn.clicked.connect(self.assignment_num)
+
+        self.zadanie_27_btn = QPushButton(self)
+        self.zadanie_27_btn.setText('27')
+        self.zadanie_27_btn.resize(40, 40)
+        self.zadanie_27_btn.move(80, 580)
+        self.zadanie_27_btn.clicked.connect(self.assignment_num)
+
+    def assignment_num(self):
+        number = self.sender().text()
+        address = Shered_Data.address
+
+
+
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    files = Reg()
+    files.show()
+    sys.exit(app.exec())
