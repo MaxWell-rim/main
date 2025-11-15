@@ -3,7 +3,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QTableWidget, QVBoxLayout
 from PyQt6.QtWidgets import QLabel, QLineEdit, QMessageBox, QTextEdit, QDialog, QTableWidgetItem
 from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QPixmap, QDesktopServices, QColor
+from PyQt6.QtGui import QPixmap, QDesktopServices, QColor, QFont
 import os.path
 
 MAMONT_REG = {'1': '1'}#тестовый пароль для учителя
@@ -112,19 +112,23 @@ class InputTask(QWidget):#класс окна ввода адреса задан
         self.back_button.setStyleSheet("border: 1px solid black;")
         self.back_button.clicked.connect(self.back)
 
-        self.back_button = QPushButton(self)
-        self.back_button.setText('Ввод адреса')
-        self.back_button.resize(self.back_button.sizeHint())#кнопка ввода адреса
-        self.back_button.move(600, 550)
-        self.back_button.clicked.connect(self.send_address)
+        self.adress_button = QPushButton(self)
+        self.adress_button.setText('Ввод адреса')
+        self.adress_button.resize(100, 30)#кнопка ввода адреса
+        self.adress_button.move(700, 650)
+        font = QFont()
+        font.setBold(True)
+        self.adress_button.setFont(font)
+        self.adress_button.clicked.connect(self.send_address)
 
         self.adress_input = QLineEdit(self)
-        self.adress_input.move(450, 500)
+        self.adress_input.move(550, 600)
         self.adress_input.resize(400, 40)
 
         self.inf_label = QLabel(self)#иструкция по созданию файлов и их структуры
-        self.inf_label.resize(1200, 400)
-        self.inf_label.setText(r"""Перед тем как ввести адрес (...\Main_EGE_Tester) папки с заданием убедитесь что она соответствует правилам для обработки файлов:
+        self.inf_label.resize(1440, 500)
+        self.inf_label.setText(r"""Перед тем как ввести адрес (...\Main_EGE_Tester) папки с заданием убедитесь что она 
+        соответствует правилам для обработки файлов:
 Основная папка должна иметь название Main_EGE_Tester, она должна нести в себе текстовый файл 'Tasks'
 пример структуры задания из файла:
                     номер задания#вопрос#ответ
@@ -136,8 +140,8 @@ class InputTask(QWidget):#класс окна ввода адреса задан
     к которому относятся например: '12.png' или '7.jpg'
     и на последок папку 'Add_files' в которых будут дополнительные файлы к заданиям они должны называться номером задания
     к которому относятся например: '18.ods' или '10.odt' (всего поддерживаемых расширений 3: .odt, .ods, .txt)""")
-        self.inf_label.move(10, 100)
-        self.inf_label.setStyleSheet("font-size: 14pt;")
+        self.inf_label.move(30, 70)
+        self.inf_label.setStyleSheet("font-size: 18pt;border: 1px solid black;")
 
     def send_address(self):#отправка адреса
         Shered_Data.address = self.adress_input.text()
