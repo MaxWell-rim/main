@@ -1,0 +1,626 @@
+import sys
+
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QMainWindow, QTableWidget, QVBoxLayout
+from PyQt6.QtWidgets import QLabel, QLineEdit, QMessageBox, QTextEdit, QDialog, QTableWidgetItem
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QPixmap, QDesktopServices, QColor
+import os.path
+
+MAMONT_REG = {'1': '1'}#тестовый пароль для учителя
+UCHENIK_REG = {'2': '2'}#тестовый пароль для учиника
+
+if hasattr(Qt, "AA_EnableHighDpiScaling"):
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)#фикс для 4к маниторов
+if hasattr(Qt, "AA_UseHighDpiPixmaps"):
+    QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+
+class Reg(QMainWindow):#класс окна регистрации
+    def __init__(self):
+        super(Reg, self).__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setFixedSize(1500, 900)
+        self.setWindowTitle('Форма для регистрации')
+
+        self.input_btn = QPushButton(self)
+        self.input_btn.setText('Ввод')
+        self.input_btn.resize(self.input_btn.sizeHint())#кнопка ввода данных
+        self.input_btn.setGeometry(480, 410, 161, 51)
+        self.input_btn.move(695, 380)
+        self.input_btn.setStyleSheet("font-size: 14pt;")
+        self.input_btn.clicked.connect(self.logg)
+
+        self.label = QLabel(self)
+        self.label.setText("Введите логин и пароль")
+        self.label.resize(300, 100)
+        self.label.move(650, 200)
+        self.label.setStyleSheet("font-size: 14pt;")
+
+        self.login_label = QLabel(self)
+        self.login_label.setText("Введите логин: ")
+        self.login_label.move(520, 290)
+        self.login_label.setStyleSheet("font-size: 12pt;")
+        self.login_label.resize(600, 20)
+
+        self.password_label = QLabel(self)
+        self.password_label.setText("Введите пароль: ")
+        self.password_label.move(520, 340)
+        self.password_label.setStyleSheet("font-size: 11pt;")
+        self.password_label.resize(600, 20)
+
+        self.login_input = QLineEdit(self)
+        self.login_input.move(650, 280)#окно ввода логина
+        self.login_input.resize(250, 40)
+
+        self.password_input = QLineEdit(self)
+        self.password_input.move(650, 330)#окно ввода пароля
+        self.password_input.resize(250, 40)
+
+    def logg(self):#проверка чьи данные введены
+        try:
+            if self.login_input and self.password_input:
+                login = self.login_input.text()
+                password = self.password_input.text()
+                if (login in UCHENIK_REG and UCHENIK_REG[login] == password):
+                    self.otkritu()
+                elif (login in MAMONT_REG and MAMONT_REG[login] == password):
+                    self.otkrit()
+                else:
+                    QMessageBox.warning(self, 'ERROR', 'Нет такого логина или пароля.')
+            else:
+                QMessageBox.warning(self, 'ERROR', 'Что-то не так.')
+        except Exception as f:
+            print(f)
+            QMessageBox.warning(self, 'ERROR', 'Что-то не так.')
+
+    def otkrit(self):#открытие окна ввода задания
+        self.open = InputTask()
+        self.open.regwin = self
+        self.password_input.clear()
+        self.login_input.clear()
+        self.open.show()
+        self.close()
+
+    def otkritu(self):#открытие окна теста
+        self.open = Test()
+        self.open.regwin1 = self
+        self.password_input.clear()
+        self.login_input.clear()
+        self.open.show()
+        self.close()
+
+
+class Shered_Data(QWidget):#класс для передачи адреса файлов
+    address = ''
+
+
+class InputTask(QWidget):#класс окна ввода адреса задания
+    def __init__(self):
+        super(InputTask, self).__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setFixedSize(1500, 900)
+        self.setWindowTitle('введите адрес папки с заданиями')
+
+        self.back_button = QPushButton(self)
+        self.back_button.setText('Назад')
+        self.back_button.resize(self.back_button.sizeHint())#кнопка возращения к окну регистрации
+        self.back_button.move(30, 30)
+        self.back_button.setStyleSheet("border: 1px solid black;")
+        self.back_button.clicked.connect(self.back)
+
+        self.back_button = QPushButton(self)
+        self.back_button.setText('Ввод адреса')
+        self.back_button.resize(self.back_button.sizeHint())#кнопка ввода адреса
+        self.back_button.move(600, 550)
+        self.back_button.clicked.connect(self.send_address)
+
+        self.adress_input = QLineEdit(self)
+        self.adress_input.move(450, 500)
+        self.adress_input.resize(400, 40)
+
+        self.inf_label = QLabel(self)#иструкция по созданию файлов и их структуры
+        self.inf_label.resize(1200, 400)
+        self.inf_label.setText(r"""Перед тем как ввести адрес (...\Main_EGE_Tester) папки с заданием убедитесь что она соответствует правилам для обработки файлов:
+Основная папка должна иметь название Main_EGE_Tester, она должна нести в себе текстовый файл 'Tasks'
+пример структуры задания из файла:
+                    номер задания#вопрос#ответ
+                    !#?
+                    11#Привет, как дела?#нормально
+                    !#?
+                    ...
+    , папку 'Images' в которой будут картинки к заданиям где это требуется мами картинки должны называться номером задания
+    к которому относятся например: '12.png' или '7.jpg'
+    и на последок папку 'Add_files' в которых будут дополнительные файлы к заданиям они должны называться номером задания
+    к которому относятся например: '18.ods' или '10.odt' (всего поддерживаемых расширений 3: .odt, .ods, .txt)""")
+        self.inf_label.move(10, 100)
+        self.inf_label.setStyleSheet("font-size: 14pt;")
+
+    def send_address(self):#отправка адреса
+        Shered_Data.address = self.adress_input.text()
+
+    def back(self):#назад к окну реситрации
+        self.regwin = Reg()
+        self.zadanwin = InputTask()
+        self.regwin.show()
+        self.close()
+
+
+class Test(QWidget):#окно теста
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+        with open('saved_answers', 'w') as saved_answers:#создание файла для сохранения ответов
+            print('', file=saved_answers)
+
+    def initUI(self):
+        self.setFixedSize(1500, 793)
+        self.setWindowTitle('Решите задания')
+
+        self.back_button = QPushButton(self)
+        self.back_button.setText('Назад')
+        self.back_button.resize(self.back_button.sizeHint())
+        self.back_button.move(37, 5)
+        self.back_button.clicked.connect(self.back)
+        self.back_button.setStyleSheet("border: 1px solid black;")
+
+        self.zadanie_1_btn = QPushButton(self)#кнапка перехода к заданию 1 и так далее до 27...
+        self.zadanie_1_btn.setText('1')
+        self.zadanie_1_btn.resize(40, 40)
+        self.zadanie_1_btn.move(30, 30)
+        self.zadanie_1_btn.clicked.connect(self.assignment_num)
+        self.zadanie_1_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_2_btn = QPushButton(self)
+        self.zadanie_2_btn.setText('2')
+        self.zadanie_2_btn.resize(40, 40)
+        self.zadanie_2_btn.move(30, 80)
+        self.zadanie_2_btn.clicked.connect(self.assignment_num)
+        self.zadanie_2_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_3_btn = QPushButton(self)
+        self.zadanie_3_btn.setText('3')
+        self.zadanie_3_btn.resize(40, 40)
+        self.zadanie_3_btn.move(30, 130)
+        self.zadanie_3_btn.clicked.connect(self.assignment_num)
+        self.zadanie_3_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_4_btn = QPushButton(self)
+        self.zadanie_4_btn.setText('4')
+        self.zadanie_4_btn.resize(40, 40)
+        self.zadanie_4_btn.move(30, 180)
+        self.zadanie_4_btn.clicked.connect(self.assignment_num)
+        self.zadanie_4_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_5_btn = QPushButton(self)
+        self.zadanie_5_btn.setText('5')
+        self.zadanie_5_btn.resize(40, 40)
+        self.zadanie_5_btn.move(30, 230)
+        self.zadanie_5_btn.clicked.connect(self.assignment_num)
+        self.zadanie_5_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_6_btn = QPushButton(self)
+        self.zadanie_6_btn.setText('6')
+        self.zadanie_6_btn.resize(40, 40)
+        self.zadanie_6_btn.move(30, 280)
+        self.zadanie_6_btn.clicked.connect(self.assignment_num)
+        self.zadanie_6_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_7_btn = QPushButton(self)
+        self.zadanie_7_btn.setText('7')
+        self.zadanie_7_btn.resize(40, 40)
+        self.zadanie_7_btn.move(30, 330)
+        self.zadanie_7_btn.clicked.connect(self.assignment_num)
+        self.zadanie_7_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_8_btn = QPushButton(self)
+        self.zadanie_8_btn.setText('8')
+        self.zadanie_8_btn.resize(40, 40)
+        self.zadanie_8_btn.move(30, 380)
+        self.zadanie_8_btn.clicked.connect(self.assignment_num)
+        self.zadanie_8_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_9_btn = QPushButton(self)
+        self.zadanie_9_btn.setText('9')
+        self.zadanie_9_btn.resize(40, 40)
+        self.zadanie_9_btn.move(30, 430)
+        self.zadanie_9_btn.clicked.connect(self.assignment_num)
+        self.zadanie_9_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_10_btn = QPushButton(self)
+        self.zadanie_10_btn.setText('10')
+        self.zadanie_10_btn.resize(40, 40)
+        self.zadanie_10_btn.move(30, 480)
+        self.zadanie_10_btn.clicked.connect(self.assignment_num)
+        self.zadanie_10_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_11_btn = QPushButton(self)
+        self.zadanie_11_btn.setText('11')
+        self.zadanie_11_btn.resize(40, 40)
+        self.zadanie_11_btn.move(30, 530)
+        self.zadanie_11_btn.clicked.connect(self.assignment_num)
+        self.zadanie_11_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_12_btn = QPushButton(self)
+        self.zadanie_12_btn.setText('12')
+        self.zadanie_12_btn.resize(40, 40)
+        self.zadanie_12_btn.move(30, 580)
+        self.zadanie_12_btn.clicked.connect(self.assignment_num)
+        self.zadanie_12_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_13_btn = QPushButton(self)
+        self.zadanie_13_btn.setText('13')
+        self.zadanie_13_btn.resize(40, 40)
+        self.zadanie_13_btn.move(30, 630)
+        self.zadanie_13_btn.clicked.connect(self.assignment_num)
+        self.zadanie_13_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_14_btn = QPushButton(self)
+        self.zadanie_14_btn.setText('14')
+        self.zadanie_14_btn.resize(40, 40)
+        self.zadanie_14_btn.move(30, 680)
+        self.zadanie_14_btn.clicked.connect(self.assignment_num)
+        self.zadanie_14_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_15_btn = QPushButton(self)
+        self.zadanie_15_btn.setText('15')
+        self.zadanie_15_btn.resize(40, 40)
+        self.zadanie_15_btn.move(30, 730)
+        self.zadanie_15_btn.clicked.connect(self.assignment_num)
+        self.zadanie_15_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_16_btn = QPushButton(self)
+        self.zadanie_16_btn.setText('16')
+        self.zadanie_16_btn.resize(40, 40)
+        self.zadanie_16_btn.move(80, 30)
+        self.zadanie_16_btn.clicked.connect(self.assignment_num)
+        self.zadanie_16_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_17_btn = QPushButton(self)
+        self.zadanie_17_btn.setText('17')
+        self.zadanie_17_btn.resize(40, 40)
+        self.zadanie_17_btn.move(80, 80)
+        self.zadanie_17_btn.clicked.connect(self.assignment_num)
+        self.zadanie_17_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_18_btn = QPushButton(self)
+        self.zadanie_18_btn.setText('18')
+        self.zadanie_18_btn.resize(40, 40)
+        self.zadanie_18_btn.move(80, 130)
+        self.zadanie_18_btn.clicked.connect(self.assignment_num)
+        self.zadanie_18_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_19_btn = QPushButton(self)
+        self.zadanie_19_btn.setText('19')
+        self.zadanie_19_btn.resize(40, 40)
+        self.zadanie_19_btn.move(80, 180)
+        self.zadanie_19_btn.clicked.connect(self.assignment_num)
+        self.zadanie_19_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_20_btn = QPushButton(self)
+        self.zadanie_20_btn.setText('20')
+        self.zadanie_20_btn.resize(40, 40)
+        self.zadanie_20_btn.move(80, 230)
+        self.zadanie_20_btn.clicked.connect(self.assignment_num)
+        self.zadanie_20_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_21_btn = QPushButton(self)
+        self.zadanie_21_btn.setText('21')
+        self.zadanie_21_btn.resize(40, 40)
+        self.zadanie_21_btn.move(80, 280)
+        self.zadanie_21_btn.clicked.connect(self.assignment_num)
+        self.zadanie_21_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_22_btn = QPushButton(self)
+        self.zadanie_22_btn.setText('22')
+        self.zadanie_22_btn.resize(40, 40)
+        self.zadanie_22_btn.move(80, 330)
+        self.zadanie_22_btn.clicked.connect(self.assignment_num)
+        self.zadanie_22_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_23_btn = QPushButton(self)
+        self.zadanie_23_btn.setText('23')
+        self.zadanie_23_btn.resize(40, 40)
+        self.zadanie_23_btn.move(80, 380)
+        self.zadanie_23_btn.clicked.connect(self.assignment_num)
+        self.zadanie_23_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_24_btn = QPushButton(self)
+        self.zadanie_24_btn.setText('24')
+        self.zadanie_24_btn.resize(40, 40)
+        self.zadanie_24_btn.move(80, 430)
+        self.zadanie_24_btn.clicked.connect(self.assignment_num)
+        self.zadanie_24_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_25_btn = QPushButton(self)
+        self.zadanie_25_btn.setText('25')
+        self.zadanie_25_btn.resize(40, 40)
+        self.zadanie_25_btn.move(80, 480)
+        self.zadanie_25_btn.clicked.connect(self.assignment_num)
+        self.zadanie_25_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_26_btn = QPushButton(self)
+        self.zadanie_26_btn.setText('26')
+        self.zadanie_26_btn.resize(40, 40)
+        self.zadanie_26_btn.move(80, 530)
+        self.zadanie_26_btn.clicked.connect(self.assignment_num)
+        self.zadanie_26_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+        self.zadanie_27_btn = QPushButton(self)
+        self.zadanie_27_btn.setText('27')
+        self.zadanie_27_btn.resize(40, 40)
+        self.zadanie_27_btn.move(80, 580)
+        self.zadanie_27_btn.clicked.connect(self.assignment_num)
+        self.zadanie_27_btn.setStyleSheet("background-color: #1e3a8a; color: white;")
+
+
+        self.text_area = QTextEdit(self)#инструкция к выполнению теста
+        self.text_area.setReadOnly(True)
+        self.text_area.setGeometry(150, 3, 900, 765)
+        self.text_area.setStyleSheet("font-size: 14pt;")
+        self.text_area.setText(r"""Инструкция для участника экзамена по информатике (симулятор)
+
+«Уважаемые участники экзамена! Перед началом убедитесь, что на вашем рабочем месте на экране отображаются все необходимые элементы:
+ рабочая область для выполнения заданий, кнопка «Сдать работу».
+
+Правила работы в симуляторе:
+1. Экзамен начинается после нажатия любой кнопки с номером задания.
+2. Все задания должны выполняться только в предоставленной среде. Использование стороннего ПО или внешних источников информации запрещено.
+3. Не покидайте окно симулятора во время экзамена.
+Советы по выполнению экзамена:
+Сначала внимательно прочитайте задание, затем приступайте к выполнению.Если не знаете ответ, отметьте его черновиком и возвращайтесь позже.
+Не забывайте нажать кнопку ввода после ввода ответа иначе ответ не сохранится, для изменения ответа нажмите кнопку вновь
+Завершение экзамена:
+После нажатия кнопки «Завершить тестирование» ваши ответы автоматически проверяются.
+После завершения экзамена вы можете просмотреть свои результаты.
+Желаем успеха и удачной работы!»""")
+        self.text_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.text_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+
+        self.answer_label = QLabel("Введите ответ:", self)
+        self.answer_label.resize(200, 30)
+        self.answer_label.setStyleSheet("font-size: 12pt;")
+        self.answer_label.move(1100, 540)
+
+        self.answer_input = QLineEdit(self)
+        self.answer_input.resize(300, 30)
+        self.answer_input.move(1100, 570)
+
+        self.answer_btn = QPushButton(self)
+        self.answer_btn.setText('Сохранить ответ')
+        self.answer_btn.resize(self.answer_btn.sizeHint())
+        self.answer_btn.move(1100, 600)
+        self.answer_btn.clicked.connect(self.save_answer)
+
+        self.image_label = QLabel(self)
+        self.image_label.move(1055, 3)
+        self.image_label.resize(440, 440)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setScaledContents(False)
+
+        self.image_btn = QPushButton(self)
+        self.image_btn.setText('Рассмотреть изображение подробнее')
+        self.image_btn.resize(self.image_btn.sizeHint())
+        self.image_btn.move(1055, 400)
+        self.image_btn.hide()
+        self.image_btn.clicked.connect(self.big_image)
+
+        self.Add_btn = QPushButton(self)
+        self.Add_btn.setText('Открыть дополнительный файл')
+        self.Add_btn.resize(self.Add_btn.sizeHint())
+        self.Add_btn.move(1055, 420)
+        self.Add_btn.hide()
+        self.Add_btn.clicked.connect(self.Open_Addfile)
+
+        self.ehd_btn = QPushButton(self)
+        self.ehd_btn.setText('Завершить тестирование')
+        self.ehd_btn.resize(self.ehd_btn.sizeHint())
+        self.ehd_btn.move(1300, 720)
+        self.ehd_btn.clicked.connect(self.end_test)
+
+        self.task_label = QLabel(self)
+        self.task_label.resize(200, 30)
+        self.task_label.setStyleSheet("font-size: 12pt;")
+        self.task_label.move(1100, 720)
+
+    def assignment_num(self):#переход к заданию
+        self.answer_input.clear()
+        number = self.sender().text()
+        self.task_label.setText(f'Задание {number}')
+        self.answer_num = number
+        address = Shered_Data.address
+        try:
+            with open(f'{address}' + '/Tasks.txt', encoding="utf-8") as task_text:
+                value = task_text.read().split('!#?')#получение вопроса
+                for i in value:
+                    j = i.split('#')
+                    num = j[0]
+                    if num == number or num[1:] == number:
+                        self.text_area.setText(j[1])
+
+            self.existence_Image = False
+            self.existence_Add_files = False
+            if os.path.exists(address + f"/Images/{number}.jpg") or os.path.exists(address + f"/Images/{number}.png"):
+                self.existence_Image = True#проверка на наличие фото
+
+            if os.path.exists(fr'{address}' + f'/Add_files/{number}.txt') or os.path.exists(
+                    fr'{address}' + f'/Add_files/{number}.ods') or os.path.exists(
+                    fr'{address}' + f'/Add_files/{number}.odt'):
+                self.existence_Add_files = True#проверка на наличие доп. файла
+
+
+            if self.existence_Image:#показать изображение и получение его расширения
+                if os.path.exists(address + f"/Images/{number}.jpg"):
+                    self.file_path = address + f"/Images/{number}.jpg"
+                elif os.path.exists(address + f"/Images/{number}.png"):
+                    self.file_path = address + f"/Images/{number}.png"
+                self.image_label.show()
+                self.pixmap = QPixmap(self.file_path)
+                self.image_label.setPixmap(self.pixmap)
+                scaled_pixmap = self.pixmap.scaled(
+                    self.image_label.width(),
+                    self.image_label.height(),
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                self.image_label.setPixmap(scaled_pixmap)
+                self.image_btn.show()
+                self.flag = False
+            else:
+                self.image_btn.hide()
+                self.image_label.hide()
+
+            if self.existence_Add_files:#показать кнопку открытия доп файла и получение его расширения
+                if os.path.exists(address + f"/Add_files/{number}.txt"):
+                    self.file_path_Add = address + f"/Add_files/{number}.txt"
+                elif os.path.exists(address + f"/Add_files/{number}.ods"):
+                    self.file_path_Add = address + f"/Add_files/{number}.ods"
+                elif os.path.exists(address + f"/Add_files/{number}.odt"):
+                    self.file_path_Add = address + f"/Add_files/{number}.odt"
+                self.Add_btn.show()
+            else:
+                self.Add_btn.hide()
+
+        except FileNotFoundError:
+            QMessageBox.warning(self, 'ERROR', 'Файл Tasks не найден.')
+        except Exception as f:
+            QMessageBox.warning(self, 'ERROR', str(f))
+
+
+    def big_image(self):#рассмотреть изображение по ближе (увеличинная версия в отдельном окне)
+        if not hasattr(self, 'pixmap'):
+            return
+        image_okno = QDialog(self)
+        image_okno.setWindowTitle("Увеличенное изображение")
+        image_okno.resize(800, 600)
+        big_image_label = QLabel(image_okno)
+        big_image_label.resize(800, 600)
+        big_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        scaled_pixmap = self.pixmap.scaled(780, 580, Qt.AspectRatioMode.KeepAspectRatio,
+                                           Qt.TransformationMode.SmoothTransformation)
+        big_image_label.setPixmap(scaled_pixmap)
+        image_okno.exec()
+
+    def Open_Addfile(self):#открытие доп файла
+        url = QUrl.fromLocalFile(self.file_path_Add)
+        QDesktopServices.openUrl(url)
+
+    def save_answer(self):#сохраниение ответа в файл saved_answers
+        with open('saved_answers', 'a') as saved_answers:
+            answer = self.answer_input.text()
+            print(f'{self.answer_num}#{answer}', file=saved_answers)
+            print('!#?', file=saved_answers)
+
+    def end_test(self):#завершение теста и переход к проверке
+        self.comwin = Completing_test()
+        self.testnwin = Test()
+        self.comwin.show()
+        self.close()
+
+    def back(self):#возврат к окну регистрации
+        self.regwin = Reg()
+        self.testnwin = Test()
+        self.regwin.show()
+        self.close()
+
+
+class Completing_test(QWidget):#класс окна таблицы для проврки ответов
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Таблица ответов")
+        self.setGeometry(100, 100, 600, 600)
+
+        layout = QVBoxLayout(self)
+
+        self.table = QTableWidget(27, 3)#создание таблицы
+        headers = ["Номер задания", "Правильный ответ", "Полученный ответ"]#заголовки столбцов
+        self.table.setHorizontalHeaderLabels(headers)
+
+        self.populate_table()#заполнение данными
+        layout.addWidget(self.table)
+
+    def populate_table(self):#заполнение данными
+        address = Shered_Data.address
+
+        student_answers = {}
+        try:
+            with open('saved_answers', 'r', encoding='utf-8') as file:#получение ответов из файла
+                lines = file.read().split('!#?')
+                for line in lines:
+                    if line.strip() and '#' in line:
+                        parts = line.split('#')
+                        if len(parts) >= 2:
+                            task_num = parts[0].strip()
+                            answer = parts[1].strip()
+                            if task_num.isdigit():
+                                student_answers[int(task_num)] = answer
+        except:
+            pass
+
+        correct_answers = {}
+        try:
+            with open(f'{address}/Tasks.txt', 'r', encoding='utf-8') as task_text:#получение правильных ответов
+                content = task_text.read()
+                sections = content.split('!#?')
+                for section in sections:
+                    if section.strip() and '#' in section:
+                        parts = section.split('#')
+                        if len(parts) >= 3:
+                            task_num = parts[0].strip()
+                            answer = parts[2].strip()
+                            if task_num.isdigit():
+                                correct_answers[int(task_num)] = answer
+        except:
+            pass
+
+        for i in range(27):
+            task_number = i + 1
+
+            task_item = QTableWidgetItem(str(task_number))
+            task_item.setFlags(task_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(i, 0, task_item)
+
+            True_answer = correct_answers.get(task_number, "Нет данных")
+            True_item = QTableWidgetItem(True_answer)
+            True_item.setFlags(True_item.flags() & ~Qt.ItemFlag.ItemIsEditable)#вставка в таблицу данных
+            self.table.setItem(i, 1, True_item)
+
+            student_answer = student_answers.get(task_number, "")
+            user_item = QTableWidgetItem(student_answer)
+            user_item.setFlags(user_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+            self.table.setItem(i, 2, user_item)
+
+        self.check_answers()
+
+    def check_answers(self):#проверка ответов
+        for i in range(27):
+            True_item = self.table.item(i, 1)
+            user_item = self.table.item(i, 2)
+
+            if True_item and user_item:
+                correct_text = True_item.text().strip()
+                user_text = user_item.text().strip()
+
+                user_item.setBackground(QColor(255, 255, 255))
+                True_item.setBackground(QColor(255, 255, 255))
+
+                if user_text and user_text != "Нет данных" and correct_text != "Нет данных":
+                    if correct_text.lower() == user_text.lower():#если ответ не правильный то клетка стенет красной
+                        user_item.setBackground(QColor(144, 238, 144))#если правильный то зелёной
+                        True_item.setBackground(QColor(144, 238, 144))
+                    else:
+                        user_item.setBackground(QColor(255, 182, 193))
+                        True_item.setBackground(QColor(255, 182, 193))
+
+
+
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    files = Reg()
+    files.show()
+    sys.exit(app.exec())
